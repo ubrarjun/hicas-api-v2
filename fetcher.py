@@ -20,7 +20,8 @@ def fetch_student_data(roll, password, dob):
         driver.set_page_load_timeout(20)
 
         # Step 1: Open login page
-        driver.get("https://hicas.studentscorner.online/StudentLogin.aspx")
+        driver.get("http://artsecampus.hicas.ac.in/hindusthan/")  # ✅ Corrected
+
 
         # Step 2: Input credentials
         driver.find_element(By.ID, "txtregno").send_keys(roll)
