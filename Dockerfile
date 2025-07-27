@@ -1,7 +1,7 @@
-# Start from an official Python base image
+# Base image: slim Python 3.10
 FROM python:3.10-slim
 
-# Install Chrome dependencies
+# Install system dependencies (Chrome + headless support)
 RUN apt-get update && apt-get install -y \
     wget \
     gnupg \
@@ -13,29 +13,28 @@ RUN apt-get update && apt-get install -y \
     libnss3 \
     libxss1 \
     libappindicator1 \
-    libindicator7 \
     fonts-liberation \
     libatk-bridge2.0-0 \
     libgtk-3-0 \
     --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Chrome browser
-RUN wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add - \
-    && echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list \
-    && apt-get update && apt-get install -y google-chrome-stable
+# Install Google Chrome (stable)
+RUN wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add - && \
+    echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list && \
+    apt-get update && apt-get install -y google-chrome-stable
 
 # Set working directory
 WORKDIR /app
 
-# Copy all files
+# Copy all your files into container
 COPY . .
 
-# Install Python packages
+# Upgrade pip and install Python dependencies
 RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 
-# Expose the port Flask runs on
+# Expose port 5000 for Flask
 EXPOSE 5000
 
 # Start the Flask app
