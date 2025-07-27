@@ -3,6 +3,7 @@
 from flask import Flask, request, jsonify
 from fetcher import fetch_student_data
 from flask_cors import CORS
+import os  # ✅ Needed for dynamic PORT binding on Render
 
 app = Flask(__name__)
 CORS(app)  # allows Android app (or browser) to access from anywhere
@@ -34,4 +35,5 @@ def login():
         return jsonify({"status": "fail", "message": f"Server error: {str(e)}"}), 500
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    port = int(os.environ.get("PORT", 5000))  # ✅ Use Render's assigned port if available
+    app.run(host="0.0.0.0", port=port)
