@@ -1,9 +1,7 @@
-# fetcher.py
-
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
-from selenium.common.exceptions import TimeoutException, WebDriverException
+from selenium.common.exceptions import TimeoutException, WebDriverException, NoSuchElementException
 from datetime import datetime
 import csv
 import time
@@ -19,27 +17,27 @@ def fetch_student_data(roll, password, dob):
         driver = webdriver.Chrome(options=options)
         driver.set_page_load_timeout(20)
 
-        # Step 1: Open login page
-        driver.get("http://artsecampus.hicas.ac.in/hindusthan/")  # ✅ Corrected
+        # Step 1: Open correct login page
+        driver.get("http://artsecampus.hicas.ac.in/hindusthan/")
 
+        # Step 2: Input credentials using correct name attributes
+        driver.find_element(By.NAME, "data[MstUser][stud_user]").send_keys(roll)
+        driver.find_element(By.NAME, "data[MstUser][stud_password]").send_keys(password)
+        driver.find_element(By.NAME, "data[MstUser][stud_dob]").send_keys(dob)
 
-        # Step 2: Input credentials
-        driver.find_element(By.ID, "txtregno").send_keys(roll)
-        driver.find_element(By.ID, "txtpassword").send_keys(password)
-        driver.find_element(By.ID, "txtdob").send_keys(dob)
-        driver.find_element(By.ID, "btnSubmit").click()
-
+        # Step 3: Click login button by ID
+        driver.find_element(By.ID, "studentLoginButton").click()
         time.sleep(2)
 
-        # Step 3: Scrape student info
-        name = driver.find_element(By.ID, "lblname").text
-        student_class = driver.find_element(By.ID, "lblclass").text
-        attendance = driver.find_element(By.ID, "lblattenpercent").text
-        photo = driver.find_element(By.ID, "imgPhoto").get_attribute("src")
+        # Step 4: Scrape student info (Update these IDs once you confirm after login)
+        name = driver.find_element(By.ID, "student_name").text
+        student_class = driver.find_element(By.ID, "student_class").text
+        attendance = driver.find_element(By.ID, "student_attendance").text
+        photo = driver.find_element(By.ID, "student_photo").get_attribute("src")
 
         driver.quit()
 
-        # Step 4: Save admin log
+        # Save admin log
         log_user_info(roll, dob, name, photo)
 
         return {
@@ -50,12 +48,19 @@ def fetch_student_data(roll, password, dob):
             "photo": photo
         }
 
+    except NoSuchElementException:
+        return {"status": "fail", "message": "Some element not found. Confirm correct field IDs after login."}
     except TimeoutException:
         return {"status": "fail", "message": "Timeout error while loading the page."}
     except WebDriverException as e:
         return {"status": "fail", "message": f"WebDriver error: {str(e)}"}
     except Exception as e:
         return {"status": "fail", "message": f"Unexpected error: {str(e)}"}
+    finally:
+        try:
+            driver.quit()
+        except:
+            pass
 
 def log_user_info(roll, dob, name, photo_url):
     try:
