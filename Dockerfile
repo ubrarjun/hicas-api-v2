@@ -1,50 +1,37 @@
-# Use official Python base image
-FROM python:3.10-slim
+# Base image with Python and system tools
+FROM python:3.11-slim
 
 # Set environment variables
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    wget \
-    curl \
-    unzip \
-    fonts-liberation \
-    libnss3 \
-    libxss1 \
-    libasound2 \
-    libatk-bridge2.0-0 \
-    libgtk-3-0 \
-    libx11-xcb1 \
-    libxcb-dri3-0 \
-    libxcomposite1 \
-    libxdamage1 \
-    libxrandr2 \
-    libgbm1 \
-    libu2f-udev \
-    xdg-utils \
+# Set work directory
+WORKDIR /app
+
+# Install system dependencies required by Firefox and Selenium
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget curl unzip gnupg2 \
     firefox-esr \
-    && apt-get clean
+    fonts-liberation libasound2 libatk-bridge2.0-0 libatk1.0-0 libcups2 \
+    libdbus-1-3 libgdk-pixbuf2.0-0 libnspr4 libnss3 libx11-xcb1 libxcomposite1 \
+    libxdamage1 libxrandr2 xdg-utils libxss1 libxtst6 libgtk-3-0 \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install geckodriver
-RUN GECKODRIVER_VERSION=$(curl -s https://api.github.com/repos/mozilla/geckodriver/releases/latest | grep 'tag_name' | cut -d\" -f4) && \
-    wget -O geckodriver.tar.gz https://github.com/mozilla/geckodriver/releases/download/$GECKODRIVER_VERSION/geckodriver-$GECKODRIVER_VERSION-linux64.tar.gz && \
+# Install GeckoDriver (latest release)
+RUN GECKODRIVER_VERSION=$(curl -s https://api.github.com/repos/mozilla/geckodriver/releases/latest | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/') && \
+    wget -O geckodriver.tar.gz https://github.com/mozilla/geckodriver/releases/download/v$GECKODRIVER_VERSION/geckodriver-v$GECKODRIVER_VERSION-linux64.tar.gz && \
     tar -xzf geckodriver.tar.gz -C /usr/local/bin && \
     rm geckodriver.tar.gz
 
-# Set working directory
-WORKDIR /app
+# Install pip dependencies
+COPY requirements.txt .
+RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
 
-# Copy all files
-COPY . /app
+# Copy app code
+COPY . .
 
-# Install Python dependencies
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
-
-# Expose the port (Render will override this)
+# Expose port (Render uses PORT env)
 EXPOSE 10000
 
-# Start using Gunicorn and read PORT from environment
-CMD exec gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --timeout 90
+# Start the server with dynamic port
+CMD ["gunicorn", "--bind", "0.0.0.0:$PORT", "app:app"]
