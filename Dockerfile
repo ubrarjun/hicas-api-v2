@@ -23,11 +23,11 @@ RUN wget -O geckodriver.tar.gz https://github.com/mozilla/geckodriver/releases/d
 COPY requirements.txt .
 RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
 
-# Copy app files
+# Copy source code
 COPY . .
 
-# Expose port for Render
+# Expose default port (Render expects 10000 or your custom value)
 EXPOSE 10000
 
-# Start app using gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:$PORT", "app:app"]
+# ✅ Final CMD: fallback to 10000 if $PORT is not set
+CMD exec gunicorn app:app --bind "0.0.0.0:${PORT:-10000}"
