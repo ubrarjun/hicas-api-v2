@@ -1,9 +1,10 @@
 services:
   - type: web
     name: hicas-attendance-api
-    runtime: docker
+    env: docker
     plan: free
+    dockerfilePath: ./Dockerfile
     autoDeploy: true
     envVars:
       - key: PORT
-        value: 5000
+        value: "5000"
