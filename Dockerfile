@@ -1,59 +1,35 @@
-# Use official Python image as base
+# Use Python base image
 FROM python:3.11-slim
 
-# Avoid interactive prompts
-ENV DEBIAN_FRONTEND=noninteractive
-
-# Install required system dependencies
+# Install system dependencies and Firefox
 RUN apt-get update && apt-get install -y \
+    wget gnupg curl unzip ca-certificates \
     firefox-esr \
-    wget \
-    gnupg \
-    ca-certificates \
-    curl \
-    unzip \
-    xvfb \
-    fonts-liberation \
-    libasound2 \
-    libatk-bridge2.0-0 \
-    libatk1.0-0 \
-    libcups2 \
-    libdbus-1-3 \
-    libgdk-pixbuf2.0-0 \
-    libnspr4 \
-    libnss3 \
-    libx11-xcb1 \
-    libxcomposite1 \
-    libxdamage1 \
-    libxrandr2 \
-    xdg-utils \
-    libgbm1 \
-    libgtk-3-0 \
-    libxss1 \
-    libxtst6 \
-    libxshmfence-dev \
-    && rm -rf /var/lib/apt/lists/*
+    libglib2.0-0 libnss3 libgdk-pixbuf2.0-0 libgtk-3-0 libdbus-glib-1-2 \
+    libx11-xcb1 libxt6 libxss1 libasound2 libxrandr2 libxcomposite1 libxcursor1 \
+    libxi6 libxtst6 libatk-bridge2.0-0 libxdamage1 libxfixes3 libxext6 libx11-6 \
+    libxrender1 fonts-liberation libappindicator3-1 libdbusmenu-glib4 \
+    libdbusmenu-gtk3-4 xdg-utils \
+    && apt-get clean
 
-# 🔽 Install GeckoDriver manually
-RUN GECKO_VER=0.34.0 && \
-    wget https://github.com/mozilla/geckodriver/releases/download/v$GECKO_VER/geckodriver-v$GECKO_VER-linux64.tar.gz && \
-    tar -xzf geckodriver-v$GECKO_VER-linux64.tar.gz && \
-    mv geckodriver /usr/local/bin/ && \
-    chmod +x /usr/local/bin/geckodriver && \
-    rm geckodriver-v$GECKO_VER-linux64.tar.gz
+# Install GeckoDriver 0.36.0 (compatible with Firefox 128)
+RUN wget -q https://github.com/mozilla/geckodriver/releases/download/v0.36.0/geckodriver-v0.36.0-linux64.tar.gz && \
+    tar -xzf geckodriver-v0.36.0-linux64.tar.gz -C /usr/local/bin && \
+    rm geckodriver-v0.36.0-linux64.tar.gz
+
+# Set environment variables
+ENV MOZ_HEADLESS=1
+ENV DISPLAY=:99
 
 # Set working directory
 WORKDIR /app
 
-# Copy app files
+# Copy all project files
 COPY . .
 
 # Install Python dependencies
-RUN pip install --upgrade pip && pip install -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Expose port for Render
-ENV PORT=10000
+# Expose port 10000 and start the app using gunicorn
 EXPOSE 10000
-
-# Run the app using gunicorn
-CMD ["gunicorn", "app:app", "-b", "0.0.0.0:10000"]
+CMD ["gunicorn", "--bind", "0.0.0.0:10000", "app:app"]
