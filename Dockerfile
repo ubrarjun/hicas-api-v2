@@ -1,35 +1,29 @@
+# Dockerfile
+
 FROM python:3.11-slim
 
-# Install system dependencies + Xvfb + Firefox
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install Firefox + dependencies
 RUN apt-get update && apt-get install -y \
-    wget gnupg curl unzip ca-certificates xvfb \
     firefox-esr \
-    libglib2.0-0 libnss3 libgdk-pixbuf2.0-0 libgtk-3-0 libdbus-glib-1-2 \
-    libx11-xcb1 libxt6 libxss1 libasound2 libxrandr2 libxcomposite1 libxcursor1 \
-    libxi6 libxtst6 libatk-bridge2.0-0 libxdamage1 libxfixes3 libxext6 libx11-6 \
-    libxrender1 fonts-liberation libappindicator3-1 libdbusmenu-glib4 \
-    libdbusmenu-gtk3-4 xdg-utils && \
-    apt-get clean
+    curl gnupg unzip wget \
+    libgtk-3-0 libdbus-glib-1-2 libx11-xcb1 \
+    libxt6 libxrandr2 libasound2 libxss1 libnss3 \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Install GeckoDriver 0.36.0 manually
-RUN wget -q https://github.com/mozilla/geckodriver/releases/download/v0.36.0/geckodriver-v0.36.0-linux64.tar.gz && \
-    tar -xzf geckodriver-v0.36.0-linux64.tar.gz -C /usr/local/bin && \
-    rm geckodriver-v0.36.0-linux64.tar.gz
+# Install GeckoDriver 0.36.0 (Linux 64-bit)
+RUN wget -O /tmp/geckodriver.tar.gz https://github.com/mozilla/geckodriver/releases/download/v0.36.0/geckodriver-v0.36.0-linux64.tar.gz && \
+    tar -xzf /tmp/geckodriver.tar.gz -C /usr/local/bin && \
+    chmod +x /usr/local/bin/geckodriver && \
+    rm /tmp/geckodriver.tar.gz
 
-# Set display environment variables
-ENV DISPLAY=:99
-
-# Set working directory
-WORKDIR /app
-
-# Copy files
-COPY . .
-
-# Install Python dependencies
+# Install Python deps
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Expose port for Render
-EXPOSE 10000
+# Copy app files
+COPY . .
 
-# Start Xvfb and Gunicorn together
-CMD xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' gunicorn --bind 0.0.0.0:10000 app:app
+# Run the app with gunicorn (Render will inject $PORT)
+CMD ["gunicorn", "--bind", "0.0.0.0:$PORT", "app:app"]

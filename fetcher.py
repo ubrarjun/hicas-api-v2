@@ -1,11 +1,13 @@
+# fetcher.py
+
 import requests, io, base64
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.firefox.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-# HICAS website
 URL = "http://artsecampus.hicas.ac.in/hindusthan/"
 
 def fetch_student_data(roll, password, dob):
@@ -15,7 +17,8 @@ def fetch_student_data(roll, password, dob):
 
     driver = None
     try:
-        driver = webdriver.Firefox(options=options)  # ✅ Auto-detect geckodriver
+        # Use correct driver path inside container
+        driver = webdriver.Firefox(options=options, service=Service("/usr/local/bin/geckodriver"))
         driver.set_page_load_timeout(30)
         driver.get(URL)
 
@@ -39,11 +42,10 @@ def fetch_student_data(roll, password, dob):
                 "#content-container > table > tbody > tr:nth-child(3) > td > table > tbody > tr:nth-child(1) > td:nth-child(3)"))
         ).text.strip()
 
+        photo_base64 = None
         if photo_url:
             photo_bytes = requests.get(photo_url, timeout=5).content
             photo_base64 = "data:image/png;base64," + base64.b64encode(photo_bytes).decode()
-        else:
-            photo_base64 = None
 
         return {
             "status": "success",
