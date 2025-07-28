@@ -1,9 +1,6 @@
-# fetcher.py
-
 import requests, io, base64
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
-from selenium.webdriver.firefox.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -18,11 +15,10 @@ def fetch_student_data(roll, password, dob):
 
     driver = None
     try:
-        driver = webdriver.Firefox(options=options, service=Service("/usr/bin/geckodriver"))
+        driver = webdriver.Firefox(options=options)  # ✅ Auto-detect geckodriver
         driver.set_page_load_timeout(30)
         driver.get(URL)
 
-        # Fill the form
         WebDriverWait(driver, 15).until(
             EC.presence_of_element_located((By.NAME, "data[MstUser][stud_user]"))
         )
@@ -31,7 +27,6 @@ def fetch_student_data(roll, password, dob):
         driver.find_element(By.NAME, "data[MstUser][stud_dob]").send_keys(dob)
         driver.find_element(By.ID, "studentLoginButton").click()
 
-        # Wait for dashboard
         WebDriverWait(driver, 15).until(
             EC.presence_of_element_located((By.ID, "student-info"))
         )
@@ -44,7 +39,6 @@ def fetch_student_data(roll, password, dob):
                 "#content-container > table > tbody > tr:nth-child(3) > td > table > tbody > tr:nth-child(1) > td:nth-child(3)"))
         ).text.strip()
 
-        # Convert photo to base64
         if photo_url:
             photo_bytes = requests.get(photo_url, timeout=5).content
             photo_base64 = "data:image/png;base64," + base64.b64encode(photo_bytes).decode()
